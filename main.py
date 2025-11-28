@@ -4,7 +4,7 @@ from typing import List
 from semantic_kernel.agents import ChatCompletionAgent, ChatHistoryAgentThread
 from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion
 from semantic_kernel.functions import kernel_function
-
+from Plugins.SchemaGroundingPlugin import SchemaGroundingPlugin
 import os
 from dotenv import load_dotenv
 
@@ -25,25 +25,25 @@ chat_completion_service = OpenAIChatCompletion(
 
 Builder_Agent = ChatCompletionAgent(
     service=chat_completion_service,
-    name="Builder Agent",
+    name="BuilderAgent",
     instructions=QUERY_BUILDER_AGENT_PROMPT
 )
 
 Evaluation_Agent = ChatCompletionAgent(
     service=chat_completion_service,
-    name="Evaluation Agent",
+    name="EvaluationAgent",
     instructions=EVALUATION_AGENT_PROMPT
 )
 
 Debug_Agent = ChatCompletionAgent(
     service=chat_completion_service,
-    name="Debug Agent",
+    name="DebugAgent",
     instructions=DEBUG_AGENT_PROMPT
 )
 
 Explanation_Agent = ChatCompletionAgent(
     service=chat_completion_service,
-    name="Explanation Agent",
+    name="ExplanationAgent",
     instructions=EXPLANATION_AGENT_PROMPT
 )
 
@@ -51,10 +51,18 @@ Explanation_Agent = ChatCompletionAgent(
 
 Orchestrator_Agent = ChatCompletionAgent(
     service=chat_completion_service,
-    name="Orchestrator Agent",
+    name="OrchestratorAgent",
     instructions=ORCHESTRATOR_AGENT_PROMPT,
-    plugins=[]
+    plugins=[Explanation_Agent,Debug_Agent,Evaluation_Agent,Builder_Agent,SchemaGroundingPlugin()]
 )
+
+test_agent = ChatCompletionAgent(
+    service=chat_completion_service,
+    name="testAgent",
+    instructions="Return from the pligin",
+    plugins=[SchemaGroundingPlugin()]
+)
+
 
 
 thread = ChatHistoryAgentThread()
