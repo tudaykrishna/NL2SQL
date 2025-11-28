@@ -1,7 +1,3 @@
-# sk_prompts.py
-# Copy-paste this file into your project. Each prompt is a plain string ready to be used as a Semantic Kernel prompt-template.
-# Placeholders use the same {{$variable}} format you provided.
-# All prompts are simplified, deterministic, and SK-friendly.
 
 ORCHESTRATOR_AGENT_PROMPT = r"""
 You are the ORCHESTRATOR AGENT for an NL2SQL system.
