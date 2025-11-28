@@ -8,6 +8,9 @@ from Plugins.SchemaGroundingPlugin import SchemaGroundingPlugin
 import os
 from dotenv import load_dotenv
 
+from semantic_kernel.connectors.ai.open_ai import OpenAIChatPromptExecutionSettings
+
+
 from Prompt import QUERY_BUILDER_AGENT_PROMPT, EVALUATION_AGENT_PROMPT, DEBUG_AGENT_PROMPT, EXPLANATION_AGENT_PROMPT, ORCHESTRATOR_AGENT_PROMPT
 
 nest_asyncio.apply()
@@ -63,7 +66,7 @@ test_agent = ChatCompletionAgent(
     plugins=[SchemaGroundingPlugin()]
 )
 
-
+execution_settings = OpenAIChatPromptExecutionSettings()
 
 thread = ChatHistoryAgentThread()
 
@@ -75,7 +78,20 @@ async def main() -> None:
         if user_input.lower().strip() == "exit":
             print("\nExiting chat...")
             return
-        response = await Orchestrator_Agent.get_response(messages=user_input, thread=thread)
+        
+
+        arguments = {
+            "user_message": user_input,
+            "last_query": "",            
+            "last_sql": "",                
+            "last_result_summary": "",      
+            "db_dialect": "sqlite",        
+            "max_rows": 1000,            
+            "max_eval_retries": 3,        
+            "max_debug_retries": 3         
+        }
+
+        response = await Orchestrator_Agent.get_response(messages=user_input, thread=thread,arguments=arguments,settings=execution_settings)
         print(f"Agent> {response}")
 
 asyncio.run(main())
