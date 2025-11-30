@@ -8,7 +8,12 @@ from Plugins.SchemaGroundingPlugin import SchemaGroundingPlugin
 import os
 from dotenv import load_dotenv
 
+from semantic_kernel.prompt_template.kernel_prompt_template import KernelPromptTemplate
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
+from semantic_kernel.functions import KernelArguments
+
 from semantic_kernel.connectors.ai.open_ai import OpenAIChatPromptExecutionSettings
+from semantic_kernel import Kernel
 
 
 from Prompt import QUERY_BUILDER_AGENT_PROMPT, EVALUATION_AGENT_PROMPT, DEBUG_AGENT_PROMPT, EXPLANATION_AGENT_PROMPT, ORCHESTRATOR_AGENT_PROMPT
@@ -25,27 +30,36 @@ chat_completion_service = OpenAIChatCompletion(
     api_key=key 
 )
 
+kernel = Kernel()
+
+kernel.add_service(chat_completion_service)
+
+kernel.add_plugin(
+    SchemaGroundingPlugin(),
+    plugin_name="SchemaGroundingPlugin",
+)
+
 
 Builder_Agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="BuilderAgent",
     instructions=QUERY_BUILDER_AGENT_PROMPT
 )
 
 Evaluation_Agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="EvaluationAgent",
     instructions=EVALUATION_AGENT_PROMPT
 )
 
 Debug_Agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="DebugAgent",
     instructions=DEBUG_AGENT_PROMPT
 )
 
 Explanation_Agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="ExplanationAgent",
     instructions=EXPLANATION_AGENT_PROMPT
 )
@@ -53,20 +67,21 @@ Explanation_Agent = ChatCompletionAgent(
 
 
 Orchestrator_Agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="OrchestratorAgent",
     instructions=ORCHESTRATOR_AGENT_PROMPT,
     plugins=[Explanation_Agent,Debug_Agent,Evaluation_Agent,Builder_Agent,SchemaGroundingPlugin()]
 )
 
 test_agent = ChatCompletionAgent(
-    service=chat_completion_service,
+    kernel=kernel,
     name="testAgent",
     instructions="Return from the pligin",
     plugins=[SchemaGroundingPlugin()]
 )
 
 execution_settings = OpenAIChatPromptExecutionSettings()
+execution_settings.function_choice_behavior = FunctionChoiceBehavior.Auto()
 
 thread = ChatHistoryAgentThread()
 
@@ -91,7 +106,7 @@ async def main() -> None:
             "max_debug_retries": 3         
         }
 
-        response = await Orchestrator_Agent.get_response(messages=user_input, thread=thread,arguments=arguments,settings=execution_settings)
+        response = await Orchestrator_Agent.get_response(messages=user_input, thread=thread)
         print(f"Agent> {response}")
 
 asyncio.run(main())
