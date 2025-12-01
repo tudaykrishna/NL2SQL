@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from semantic_kernel.functions import kernel_function
 
 # ----- CONFIG: replace this with your actual sqlite path -----
-DB_PATH = "/content/drive/MyDrive/db.sqlite"  # <-- replace me with the actual .sqlite file path
+DB_PATH = "./db.sqlite"  # <-- replace me with the actual .sqlite file path
 # -------------------------------------------------------------
 
 
@@ -46,10 +46,18 @@ class SchemaGroundingPlugin:
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or DB_PATH
 
-    @kernel_function(description="Return all rows from the table_description table (table_name + description).")
-    async def get_table_descriptions(self) -> List[Dict[str, Any]]:
-        query = "SELECT * FROM table_description;"
+
+
+    @kernel_function(description="Return all rows from table_description and table_columns.")
+    async def get_table_descriptions(self) -> Dict[str, List[Dict[str, Any]]]:
+        result = {
+            "table_description": [],
+            "table_columns": []
+        }
+
+        # ---- FETCH table_description ----
         try:
+            query = "SELECT * FROM table_description;"
             rows = await _query_sqlite(self.db_path, query)
             normalized = []
             for r in rows:
@@ -59,94 +67,49 @@ class SchemaGroundingPlugin:
                 if "description" not in row:
                     row["description"] = ""
                 normalized.append(row)
-            return normalized
+            result["table_description"] = normalized
         except Exception:
-            return []
+            result["table_description"] = []
 
-    @kernel_function(
-        description="Given a list of table names, return column metadata from table_columns table."
-    )
-    async def get_table_columns(self, table_names: List[str]) -> List[Dict[str, Any]]:
-        """
-        Input:
-          table_names: List[str] - table names selected by orchestrator from table_description
-
-        Returns:
-          [
-            { "table_name":"<name>", "column_name":"<col>", "description":"", "datatype":"" },
-            ...
-          ]
-
-        Behavior:
-          - Supports table_columns rows that have only (table_name, column_name).
-          - If description/datatype columns exist, include them; otherwise return empty strings for those fields.
-        """
-        if not table_names:
-            return []
-
-        # Use parameterized IN-clause
-        placeholders = ",".join(["?"] * len(table_names))
-        query = f"SELECT * FROM table_columns WHERE table_name IN ({placeholders});"
+        # ---- FETCH table_columns ----
         try:
-            rows = await _query_sqlite(self.db_path, query, table_names)
+            query = "SELECT * FROM table_columns;"
+            rows = await _query_sqlite(self.db_path, query)
             normalized = []
             for r in rows:
-                # Normalize keys and provide defaults for missing fields
                 row = {k: (v if v is not None else "") for k, v in r.items()}
-                # Accept several possible column-name variants
+
                 table_col = row.get("table_name") or row.get("table") or row.get("tablename") or ""
                 column_col = row.get("column_name") or row.get("column") or row.get("colname") or ""
-                if not table_col or not column_col:
-                    # Defensive parse for single CSV-like value (e.g., "employee_data,EmpID")
-                    first_vals = list(row.values())
-                    if len(first_vals) == 1 and isinstance(first_vals[0], str) and "," in first_vals[0]:
-                        parts = [p.strip() for p in first_vals[0].split(",")]
-                        if len(parts) >= 2:
-                            table_col = table_col or parts[0]
-                            column_col = column_col or parts[1]
-                    else:
-                        # skip malformed row
-                        continue
 
-                description = row.get("description", "")
-                datatype = row.get("datatype", "")
-                # Ensure strings
-                description = description if isinstance(description, str) else ""
-                datatype = datatype if isinstance(datatype, str) else ""
+                if not table_col or not column_col:
+                    continue
+
+                if "description" not in row:
+                    row["description"] = ""
+                if "datatype" not in row:
+                    row["datatype"] = ""
 
                 normalized.append({
                     "table_name": table_col,
                     "column_name": column_col,
-                    "description": description,
-                    "datatype": datatype
+                    "description": row["description"],
+                    "datatype": row["datatype"]
                 })
-            return normalized
+
+            result["table_columns"] = normalized
         except Exception:
-            # On error return empty list so orchestrator can log and handle failure
-            return []
+            result["table_columns"] = []
+        print("i trust you!!!")
+        return result
+
+  
 
     @kernel_function(
         description="Execute the provided SQL script directly on the SQLite DB and return rows & columns."
     )
     async def execute_sql_script(self, sql: str) -> Dict[str, Any]:
-        """
-        VERY SIMPLE executor:
-        - Executes the exact SQL string provided.
-        - No safety checks, no timeouts, no parameterization, no LIMIT enforcement.
-        - Returns a dict containing success, rows, columns, row_count, and optional error.
 
-        Input:
-          - sql: SQL string to execute (may be SELECT or any SQL).
-
-        Output:
-          {
-            "success": True|False,
-            "rows": [ {col: val, ...}, ... ],
-            "columns": [ "col1", "col2", ... ],
-            "row_count": int,
-            "error": "<error message|null>"
-          }
-        """
         def run():
             conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
@@ -177,4 +140,5 @@ class SchemaGroundingPlugin:
                 except Exception:
                     pass
                 conn.close()
+        print("it's working!!!!!!")
         return await asyncio.to_thread(run)
