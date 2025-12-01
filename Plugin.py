@@ -49,7 +49,7 @@ class SchemaGroundingPlugin:
 
 
     @kernel_function(description="Return all rows from table_description and table_columns.")
-    async def get_table_descriptions(self) -> Dict[str, List[Dict[str, Any]]]:
+    async def get_schema_info(self) -> Dict[str, List[Dict[str, Any]]]:
         result = {
             "table_description": [],
             "table_columns": []
