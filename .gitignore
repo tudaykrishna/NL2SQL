@@ -2,3 +2,5 @@ sk/
 .env
 test.ipynb
 main2.py
+response.json
+__pycache__
