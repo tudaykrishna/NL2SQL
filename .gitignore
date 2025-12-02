@@ -3,4 +3,4 @@ sk/
 test.ipynb
 main2.py
 response.json
-__pycache__
+__pycache__/
