@@ -1,65 +1,92 @@
-from typing import Optional
-import asyncio
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from agent import Orchestrator_Agent, thread
-from semantic_kernel.functions import KernelArguments
+import streamlit as st
+import requests
+import json
+import time
 
-app = FastAPI(title="NL2SQL")
+API_URL = "http://127.0.0.1:8000/chat"
 
-class ChatRequest(BaseModel):
-    message: str
-    last_query: Optional[str] = ""
-    last_sql: Optional[str] = ""
-    last_result_summary: Optional[str] = ""
-    db_dialect: Optional[str] = "sqlite"
-    max_rows: Optional[int] = 1000
-    max_eval_retries: Optional[int] = 3
-    max_debug_retries: Optional[int] = 3
+st.title("NL2SQL Interface")
+st.caption("Chat with your database using natural language → SQL")
 
-class ChatResponse(BaseModel):
-    agent_response: str
+# ---------- Chat history ----------
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok"}
+# Display previous messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest) -> ChatResponse:
-    """Accepts a chat message and returns the Orchestrator_Agent response.
 
-    Example request body:
-    {
-      "message": "Show me all users",
-      "last_query": "",
-      "last_sql": "",
-      "last_result_summary": "",
-      "db_dialect": "sqlite",
-      "max_rows": 1000
-    }
-    """
-    # Build kernel arguments from incoming request
-    arguments = {
-        "user_message": req.message,
-        "last_query": req.last_query or "",
-        "last_sql": req.last_sql or "",
-        "last_result_summary": req.last_result_summary or "",
-        "db_dialect": req.db_dialect or "sqlite",
-        "max_rows": req.max_rows or 1000,
-        "max_eval_retries": req.max_eval_retries or 3,
-        "max_debug_retries": req.max_debug_retries or 3,
+# ---------- Helper functions ----------
+def call_nl2sql_api(message: str) -> str:
+    """Call your FastAPI NL2SQL endpoint and return the final_response text."""
+    payload = {
+        "message": message,
+        "last_query": "",
+        "last_sql": "",
+        "last_result_summary": "",
+        "db_dialect": "sqlite",
+        "max_rows": 1000,
+        "max_eval_retries": 3,
+        "max_debug_retries": 3,
     }
 
-    # Call the async Orchestrator_Agent.get_response
-    try:
-        response = await Orchestrator_Agent.get_response(
-            messages=req.message,
-            thread=thread,
-            arguments=KernelArguments(**arguments),
+    response = requests.post(API_URL, json=payload)
+
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Request failed with status code {response.status_code}: {response.text}"
         )
+
+    data2 = response.json()
+
+    # Your backend seems to return a JSON-encoded string, so handle both cases
+    if isinstance(data2, str):
+        obj = json.loads(data2)
+    else:
+        obj = data2
+
+    return obj.get("final_response", "No 'final_response' field found in API response.")
+
+
+def stream_text(text: str):
+    """Stream the response word-by-word to mimic typing."""
+    for word in text.split():
+        yield word + " "
+        time.sleep(0.02)
+
+
+# ---------- Chat input ----------
+
+prompt = st.chat_input("Enter your question / request for SQL:")
+if prompt:
+    
+    # 1. Add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # 2. Show user message
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # 3. Call backend and show assistant response
+    try:
+        full_response = call_nl2sql_api(prompt)
+
+        with st.chat_message("assistant"):
+            # Stream the text like the Streamlit docs example
+            st.write_stream(stream_text(full_response))
+
+        # 4. Save assistant message to history
+        st.session_state.messages.append(
+            {"role": "assistant", "content": full_response}
+        )
+
     except Exception as e:
-        # Return a helpful HTTP error for debugging
-        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+        error_msg = f"⚠️ Error contacting NL2SQL API:\n\n{e}"
+        with st.chat_message("assistant"):
+            st.markdown(error_msg)
 
-    return ChatResponse(agent_response=str(response))
-
+        st.session_state.messages.append(
+            {"role": "assistant", "content": error_msg}
+        )
