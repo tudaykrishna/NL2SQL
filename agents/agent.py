@@ -5,8 +5,8 @@ from semantic_kernel.agents import ChatCompletionAgent, ChatHistoryAgentThread
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 
-from Plugin import SchemaGroundingPlugin
-from Prompt import (
+from Tools.Plugin import SchemaGroundingPlugin
+from Prompt.Prompt import (
     QUERY_BUILDER_AGENT_PROMPT,
     EVALUATION_AGENT_PROMPT,
     DEBUG_AGENT_PROMPT,

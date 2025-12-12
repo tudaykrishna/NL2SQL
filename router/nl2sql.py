@@ -1,28 +1,23 @@
-
-from typing import Optional
-import asyncio
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from agent import Orchestrator_Agent, thread
+from fastapi import APIRouter
+from schemas.chatrequest import ChatRequest
+from agents.agent import Orchestrator_Agent,thread
+from fastapi import HTTPException
 from semantic_kernel.functions import KernelArguments
+from semantic_kernel.agents import ChatHistoryAgentThread
 
-app = FastAPI(title="NL2SQL")
 
-class ChatRequest(BaseModel):
-    message: str
-    last_query: Optional[str] = ""
-    last_sql: Optional[str] = ""
-    last_result_summary: Optional[str] = ""
-    db_dialect: Optional[str] = "sqlite"
-    max_rows: Optional[int] = 1000
-    max_eval_retries: Optional[int] = 3
-    max_debug_retries: Optional[int] = 3
+router = APIRouter(prefix="/api")
 
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok"}
+threads = {}
 
-@app.post("/chat")
+def get_thread(thread_id: str) -> ChatHistoryAgentThread:
+    # return existing thread or create a new one
+    if thread_id not in threads:
+        threads[thread_id] = ChatHistoryAgentThread(thread_id=thread_id)
+    return threads[thread_id]
+
+
+@router.post("/chat")
 async def chat_endpoint(req: ChatRequest):
 
     arguments = {
@@ -39,7 +34,7 @@ async def chat_endpoint(req: ChatRequest):
     try:
         response = await Orchestrator_Agent.get_response(
             messages=req.message,
-            thread=thread,
+            thread=get_thread(req.user),
             arguments=KernelArguments(**arguments),
         )
         return str(response)
