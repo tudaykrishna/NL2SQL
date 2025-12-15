@@ -1,6 +1,4 @@
 sk/
 .env
-test.ipynb
-main2.py
-response.json
+example_prompt.py
 __pycache__/

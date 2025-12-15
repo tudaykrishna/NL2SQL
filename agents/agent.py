@@ -77,5 +77,4 @@ test_agent = ChatCompletionAgent(
     instructions="You are an agent taking inputs from the user. Use the plugin SchemaGroundingPlugin to answer questions about the database schema.",
 )
 
-# Shared thread for chat history
-thread = ChatHistoryAgentThread()
+
