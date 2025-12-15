@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from schemas.chatrequest import ChatRequest
-from agents.agent import Orchestrator_Agent,thread
+from agents.agent import Orchestrator_Agent
 from fastapi import HTTPException
 from semantic_kernel.functions import KernelArguments
 from semantic_kernel.agents import ChatHistoryAgentThread
