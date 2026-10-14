@@ -100,7 +100,6 @@ class SchemaGroundingPlugin:
             result["table_columns"] = normalized
         except Exception:
             result["table_columns"] = []
-        print("i trust you!!!")
         return result
 
   
@@ -140,5 +139,4 @@ class SchemaGroundingPlugin:
                 except Exception:
                     pass
                 conn.close()
-        print("it's working!!!!!!")
         return await asyncio.to_thread(run)

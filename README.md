@@ -62,6 +62,7 @@ NL2SQL/
 ├── requirements/
 │   ├── csv_to_SQLite.py         # Load a folder of CSVs into SQLite + metadata tables
 │   └── csv_to_postgres.py       # Same, for PostgreSQL
+├── requirements.txt             # Python dependencies
 └── db.sqlite                    # Sample HR database
 ```
 
@@ -90,9 +91,7 @@ Requires Python 3.10+.
 ```bash
 python -m venv sk
 # Windows: sk\Scripts\activate    macOS/Linux: source sk/bin/activate
-pip install semantic-kernel fastapi uvicorn pydantic python-dotenv streamlit requests pandas
-# Only needed for csv_to_postgres.py:
-pip install sqlalchemy psycopg2-binary
+pip install -r requirements.txt
 ```
 
 ### 2. Configure environment variables

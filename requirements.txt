@@ -1,0 +1,12 @@
+semantic-kernel>=1.28.0
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.0
+python-dotenv>=1.0
+streamlit>=1.35
+requests>=2.31
+pandas>=2.0
+
+# Only needed for requirements/csv_to_postgres.py
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
